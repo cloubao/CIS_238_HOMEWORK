@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Display help to the user
+function showHelp {
+    echo "port_scanner [PROTOCOL] [HOST] [START_PORT] [STOP_PORT]"
+    echo "example: port_scanner tcp 132.163.4.107 1 10"
+    echo "example: port_scanner udp 132.163.4.107 1 10"
+}
+
+# Display an error message
+function showErrorMessage {
+    echo "invalid arguments. type port_scanner --help for more info"
+}
+
+# Test a device to see if it is up
+function pingCheck { 
+    ping=`ping -c 1 $host | grep bytes | wc -l`
+    if [ "$ping" -gt 1 ];then
+        echo "$host is up";
+    else
+    echo "$host is down quitting";
+    exit
+    fi
+}
+
+
+# Test a port to see if it is open
+function portCheck {
+    for ((port=$startPort; port <= $stopPort; port++))
+    do
+        (echo > /dev/$portType/$host/$port) > /dev/null 2>&1 && echo "[$portType] $port is open"
+    done      
+}
+
+numArgs=$#
+firstArg=$1
+
+if [ "$firstArg" = "--help" ]; then
+    showHelp
+    exit
+elif [ $numArgs -ne 4 ]; then
+    showErrorMessage
+    exit
+fi
+
+portType=$1
+host=$2
+startPort=$3
+stopPort=$4
+
+pingCheck
+
+if [ "$portType" = "all" ];then
+    portType="tcp"
+    portCheck
+    portType="udp"
+    portCheck
+elif [ "$portType" != "udp" ] && [ "$portType" != "tcp" ];then
+    echo "Invalid port type ($portType) must be tcp or udp"
+    echo ""
+    showHelp
+else
+    portCheck
+fi
